@@ -12,7 +12,7 @@
 start(_StartType, _StartArgs) ->
     Dispatch = cowboy_router:compile([
         {'_', [
-            {"/", quick_charge, []}
+            {"/quick_callback", quick_charge, []}
         ]}
     ]),
     {ok, _} = cowboy:start_clear(http, [{port, 8080}], #{
