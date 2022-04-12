@@ -45,9 +45,41 @@ init(Req0 = #{method := <<"GET">>}, Opts) ->
         true ->
             Data = decode(NtData,?key),
             case get_info(Data) of
-                {true,_Amount,_OrderNo}->
-                    io:format("成功!"),
-                    <<"Success">>;
+                {true,_Amount,_OrderNo, ExtraInfo}->
+                    {ok, Tokens, _} = erl_scan:string(ExtraInfo),
+                    case erl_parse:parse_term(Tokens) of
+                        {ok, 
+                            #{
+                                p := P,
+                                z := Z,
+                                rid := Rid,
+                                ip := Ip,
+                                g := G,
+                                no  := No,
+                                a := A,
+                                gold := Gold,
+                                c := C
+                            }
+                        } ->
+                            Node = list_to_atom(lists:concat([G, "_", P, "_", Z, "@", "127.0.0.1"])),
+                            case rpc:call(Node, charge, notice_test, [Rid, P, Z, No]) of
+                                {badrpc,nodedown} ->
+                                    io:format("p = [~ts], z = [~w] nodedown~n", [P, Z]),
+                                    <<"NodeDownError">>;
+                                ok ->
+                                    io:format("充值成功~n"),
+                                    <<"Success">>;
+                                {false, Msg} ->
+                                    io:format("玩家不在线 [~ts]~n", [Msg]),
+                                    <<"NotOnlineError">>;
+                                _CElse ->
+                                    io:format("未知错误 [~ts]~n", [_CElse]),
+                                    <<"UnkownError">>
+                            end;
+                        _PElse -> 
+                            io:format("PassError [~w]~n", [_PElse]),
+                            <<"ParseError">>
+                    end;
                 false ->
                     <<"GetInfoError">>;
                 _ ->
@@ -178,5 +210,4 @@ get_info(Data)->
     	PayTime,
     	OrderNo
     ]),
-    
-    {true,trunc(list_to_float(Amount)),OrderNo}.
+    {true,trunc(list_to_float(Amount)),OrderNo, ExtraInfo}.
