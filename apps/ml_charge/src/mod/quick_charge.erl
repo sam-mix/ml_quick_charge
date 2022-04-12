@@ -5,7 +5,7 @@
 -define(key, "rckhzzvprbruovhysretkuyrn9xebpb2").
 -define(sign, "@198@108@104@104@198@98@102@104@98@104@104@106@106@106@112@96@110@198@100@100@112@196@200@104@102@114@204@112@100@108@104@200").
 -define(sign_origin, "c644c134144555807c228bd439f8264d").
--define(data_origin, "<!--?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?--><quicksdk_message><message><is_test>0</is_test><channel>8888</channel><channel_uid>231845</channel_uid><game_order>123456789</game_order><order_no>12520160612114220441168433</order_no><pay_time>2016-06-12 11:42:20</pay_time><amount>1.00</amount><status>0</status><extras_params><![CDATA[#{a => 30, p=>\"dev\",z=>1,rid=>1, ip=>\"127.0.0.1\",g=>\"ml\",no => \"asdhjfljhawlejkr_awejljr\", gold => 300, c => 2]]></extras_params></message></quicksdk_message>").
+-define(data_origin, "<!--?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?--><quicksdk_message><message><is_test>0</is_test><channel>8888</channel><channel_uid>231845</channel_uid><game_order>123456789</game_order><order_no>12520160612114220441168433</order_no><pay_time>2016-06-12 11:42:20</pay_time><amount>1.00</amount><status>0</status><extras_params><![CDATA[#{a => 30, p=>\"dev\",z=>1,rid=>1, ip=>\"127.0.0.1\",g=>\"ml\",no => \"asdhjfljhawlejkr_awejljr\", gold => 300, c => 2}.]]></extras_params></message></quicksdk_message>").
 
 
 -export([
@@ -77,8 +77,8 @@ init(Req0 = #{method := <<"GET">>}, Opts) ->
                                     <<"UnkownError">>
                             end;
                         _PElse -> 
-                            io:format("PassError [~w]~n", [_PElse]),
-                            <<"ParseError">>
+                            io:format("ExtraInfoError [~w]~n", [_PElse]),
+                            <<"ExtraInfoError">>
                     end;
                 false ->
                     <<"GetInfoError">>;
