@@ -124,7 +124,7 @@ md5(S) ->
 encode(Src,Key) ->
     case lists:member(undefined,[Src,Key]) of
         true ->
-            io:formt("has null Src :~w Key: ~w ~n",[Src,Key]);
+            io:format("has null Src :~w Key: ~w ~n",[Src,Key]);
         false ->
             SrcLength = length(Src),
             KeyLength = length(Key),
