@@ -15,7 +15,8 @@
 
 
 -define(data, "@159@87@97@97@162@169@160@160@81@170@153@167@168@158@167@158@116@133@99@96@104@132@132@153@161@156@213@156@155@164@155@161@133@139@136@122@144@105@85@84@164@168@149@163@153@150@164@159@165@200@111@84@166@209@134@115@96@102@164@116@163@171@157@199@206@169@152@159@194@158@152@167@164@149@155@154@115@113@165@149@170@214@147@153@157@160@160@157@166@152@218@157@165@170@114@148@159@101@157@167@194@165@152@167@165@114@112@152@157@150@166@158@156@207@112@106@112@154@156@112@98@156@206@153@160@164@153@208@161@114@151@156@196@159@161@153@157@147@169@158@153@115@106@99@104@155@102@103@116@145@199@156@148@167@212@157@158@149@169@205@199@116@112@155@196@158@152@147@160@166@152@154@167@115@105@98@106@151@103@104@111@154@157@112@98@160@199@165@151@149@163@214@199@155@166@114@159@160@165@152@150@166@147@163@164@115@105@98@108@149@98@99@110@146@154@101@101@106@151@108@100@104@100@152@151@103@101@106@155@101@102@103@109@99@163@167@153@154@170@143@165@210@112@110@168@195@221@147@167@162@211@157@112@104@100@149@153@99@100@106@144@98@101@84@98@101@110@105@103@111@106@96@115@146@162@147@177@193@216@157@160@158@164@116@147@163@163@217@209@170@114@101@145@97@99@112@96@149@161@164@170@163@172@110@115@214@166@147@172@215@215@114@99@117@149@171@166@151@168@217@214@116@112@153@219@165@165@149@164@147@164@150@167@150@165@163@117@222@99@175@151@221@150@177@111@104@203@176@166@168@149@215@194@166@149@166@196@158@166@114@109@99@161@154@168@168@153@151@156@161@110@97@169@215@205@151@158@172@202@163@145@163@153@215@214@151@155@153@161").
--define(key, "rckhzzvprbruovhysretkuyrn9xebpb2").
+-define(key, "69132927286042631310038068152449").
+-define(md5key, "rckhzzvprbruovhysretkuyrn9xebpb2").
 -define(sign, "@198@108@104@104@198@98@102@104@98@104@104@106@106@106@112@96@110@198@100@100@112@196@200@104@102@114@204@112@100@108@104@200").
 -define(sign_origin, "c644c134144555807c228bd439f8264d").
 -define(data_origin, "<!--?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?--><quicksdk_message><message><is_test>0</is_test><channel>8888</channel><channel_uid>231845</channel_uid><game_order>123456789</game_order><order_no>12520160612114220441168433</order_no><pay_time>2016-06-12 11:42:20</pay_time><amount>1.00</amount><status>0</status><extras_params><![CDATA[#{a => 30, p=>\"dev\",z=>1,rid=>1, ip=>\"127.0.0.1\",g=>\"ml\",no => \"asdhjfljhawlejkr_awejljr\", gold => 300, c => 2}.]]></extras_params></message></quicksdk_message>").
@@ -29,17 +30,11 @@
 	,encode/2
 	]).
 
-
-init(Req0 = #{method := <<"GET">>}, Opts) ->
-	#{
-		nt_data := NtDataBin
-		,sign := SignBin
-		,md5Sign := Md5SignBin
-	} = cowboy_req:match_qs([
-		nt_data
-		,sign
-		,md5Sign
-	],Req0),
+init(Req0, Opts) ->
+    {ok, PostVals, Req} = cowboy_req:read_urlencoded_body(Req0),
+    NtDataBin = proplists:get_value(<<"nt_data">>, PostVals),
+    SignBin = proplists:get_value(<<"sign">>, PostVals),
+    Md5SignBin = proplists:get_value(<<"md5Sign">>, PostVals),
 	NtData = erlang:binary_to_list(NtDataBin),
 	Sign = erlang:binary_to_list(SignBin),
 	Md5Sign = erlang:binary_to_list(Md5SignBin),
@@ -50,13 +45,14 @@ init(Req0 = #{method := <<"GET">>}, Opts) ->
 		Sign,
 		Md5Sign
 	]),
-    Sign2 = md5(NtData++Sign++?key),
+    Sign2 = md5(NtData++Sign++?md5key),
     io:format("Sign2 = [~ts]~n", [Sign2]),
     io:format("Sign2 =:= Md5Sign => [~w]~n", [Sign2 =:= Md5Sign]),
     Reply = 
     case Sign2 =:= Md5Sign of
         true ->
             Data = decode(NtData,?key),
+            io:format("Data = [~w]~n", [Data]),
             case get_info(Data) of
                 {true,_Amount,_OrderNo, ExtraInfo}->
                     {ok, Tokens, _} = erl_scan:string(ExtraInfo),
@@ -74,7 +70,7 @@ init(Req0 = #{method := <<"GET">>}, Opts) ->
                                 c := C
                             }
                         } ->
-                            Node = list_to_atom(lists:concat([G, "_", P, "_", Z, "@", "127.0.0.1"])),
+                            Node = list_to_atom(lists:concat([G, "_", P, "_", Z, "@", Ip])),
                             case rpc:call(Node, charge, notice_test, [Rid, P, Z, No]) of
                                 {badrpc,nodedown} ->
                                     io:format("p = [~ts], z = [~w] nodedown~n", [P, Z]),
@@ -101,10 +97,10 @@ init(Req0 = #{method := <<"GET">>}, Opts) ->
         false ->
             <<"SignError">>
     end,
-	Req = cowboy_req:reply(200, #{
+	Req1 = cowboy_req:reply(200, #{
 			<<"content-type">> => <<"text/plain">>
-		}, Reply, Req0),
-	{ok, Req, Opts}.
+		}, Reply, Req),
+	{ok, Req1, Opts}.
 
 test() ->
 	M = encode(?data_origin,?key),
